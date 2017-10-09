@@ -36,7 +36,14 @@ class sigfox:
         self.api_url = 'https://backend.sigfox.com/api/'
 
     def login_test(self):
-        """Test sigfox Backend login"""
+        """Test sigfox Backend login
+
+            keyword arguments:
+            None          
+
+            Return arguments:
+            text message --> 'Login Complete'
+        """
         url = self.api_url + 'devicetypes'
         try:
             req = requests.get(url, auth=requests.auth.HTTPBasicAuth(self.login, self.password))
