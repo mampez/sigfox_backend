@@ -242,7 +242,6 @@ class sigfox:
                     print err
                 except socket.error as err:
                     print err
-                    time.sleep(60)
         except requests.exceptions.RequestException as err:
             print err
         except socket.error as err:
