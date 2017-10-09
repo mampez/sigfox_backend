@@ -242,6 +242,7 @@ class sigfox:
                     print err
                 except socket.error as err:
                     print err
+                    time.sleep(60)
         except requests.exceptions.RequestException as err:
             print err
         except socket.error as err:
@@ -249,27 +250,27 @@ class sigfox:
         return out
 
 
-    def device_all_messages_time(self, device_id, since_time, upto_time):
-        """Return a list with all messages between since_time and upto_time
+    def device_all_messages_time(self, device_id, from_time, upto_time):
+        """Return a list with all messages between from_time and upto_time
 
            Keyword arguments:
            device_id          -- device PID
            n_messages         -- Max number of messages
-           since_time         -- Start time (epoch format)
+           from_time          -- Start time (epoch format)
            upto_time          -- Finish time (epoch format)
     
            Return arguments:
-           List with n messages between since_time and upto_time
+           List with n messages between from_time and upto_time
         """
         out = []
 
         try:
-            since_epoch = int(time.mktime(time.strptime(since_time, '%Y-%m-%d')))
+            since_epoch = int(time.mktime(time.strptime(from_time, '%Y-%m-%d')))
             upto_epoch = int(time.mktime(time.strptime(upto_time, '%Y-%m-%d')))
         except ValueError:
             print "Error with the date conversion"
         if since_epoch > upto_epoch:
-            print 'upto_time should be bigger than since_time'
+            print 'upto_time should be bigger than from_time'
             exit()
         url = self.api_url + 'devices/' + str(device_id) + '/messages?since=' + \
               str(since_epoch) + '&before=' + str(upto_epoch)
