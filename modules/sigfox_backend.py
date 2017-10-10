@@ -20,14 +20,15 @@ import socket
 import json 
 import ast
 import time
-import datetime
 import requests
 import requests.packages.urllib3
 
 ## Request timeout
 TIMEOUT = 30
 
-class sigfox:
+class Sigfox(object):
+    """Sigfox class"""
+
     def __init__(self, login, password):
         if not login or not password:
             raise Exception("Login/Pass is needed it")
@@ -84,51 +85,36 @@ class sigfox:
         """Return device list
 
            Keyword arguments:
-           device_type_id          -- device types 
+           device_type_id          -- device types ID
     
            Return arguments:
            List with all the PIDs 
         """
         device_type_ids = []
         out = []
+        next_url = 1
         
         if device_type_id != 0:
             device_type_ids.append(device_type_id)
         else:
             device_type_ids = self.device_types_list()
-
         for device_type_id in device_type_ids:
             url = self.api_url + 'devicetypes/' + device_type_id + '/devices?limit=100'
-            try:
-                req = requests.get(url, auth=requests.auth.HTTPBasicAuth(self.login, self.password))
-                req.raise_for_status()
-                results = req.json()
-                for result in results['data']:
-                    out.append(result['id'])
-                out = ast.literal_eval(json.dumps(out))
-                next_url = (results['paging']).get('next')
-                while next_url:
+            while next_url != None:
+                try:
+                    req = requests.get(url, 
+                                       auth=requests.auth.HTTPBasicAuth(self.login, self.password))
+                    req.raise_for_status()
+                    results = req.json()
+                    for result in results['data']:
+                        out.append(result['id'])
+                    out = ast.literal_eval(json.dumps(out))
+                    next_url = (results['paging']).get('next')
                     url = next_url
-                    try:
-                        req = requests.get(url, 
-                                           auth=requests.auth.HTTPBasicAuth(self.login, 
-                                                                            self.password), 
-                                           timeout=TIMEOUT)
-                        req.raise_for_status()
-                        results = req.json()
-                        for result in results['data']:
-                            out.append(result['id'])
-                        out = ast.literal_eval(json.dumps(out))    
-                        next_url = (results['paging']).get('next')
-                        time.sleep(1)
-                    except requests.exceptions.RequestException as err:
-                        print err
-                    except socket.error as err:
-                        print err
-            except requests.exceptions.RequestException as err:
-                print err
-            except socket.error as err:
-                print err
+                except requests.exceptions.RequestException as err:
+                    print err
+                except socket.error as err:
+                    print err
         return out
 
 
@@ -142,48 +128,29 @@ class sigfox:
            List with all the messages 
         """
         out = []
+        next_url = 1
 
-        url = self.api_url + 'devices/' + str(device_id) + '/messages?limit=100' 
-        try:
-            req = requests.get(url, 
-                               auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
-                               timeout=TIMEOUT)
-            req.raise_for_status()
-            results = req.json()
-            results = ast.literal_eval(json.dumps(results))
-            for result in results['data']:
-                out.append([result['device'],
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(result['time'])), 
-                            result['snr'], 
-                            result['linkQuality'], 
-                            result['data']])
-            next_url = (results['paging']).get('next')
-            while next_url:
+        url = self.api_url + 'devices/' + str(device_id) + '/messages?limit=100'
+        while next_url != None: 
+            try:
+                req = requests.get(url, 
+                                   auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
+                                   timeout=TIMEOUT)
+                req.raise_for_status()
+                results = req.json()
+                results = ast.literal_eval(json.dumps(results))
+                for result in results['data']:
+                    out.append([result['device'],
+                                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(result['time'])), 
+                                result['snr'], 
+                                result['linkQuality'], 
+                                result['data']])
+                next_url = (results['paging']).get('next')
                 url = next_url
-                try:
-                    req = requests.get(url, 
-                                       auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
-                                       timeout=TIMEOUT)
-                    req.raise_for_status()
-                    results = req.json()
-                    results = ast.literal_eval(json.dumps(results))
-                    for result in results['data']:
-                        out.append([result['device'],
-                                    time.strftime('%Y-%m-%d %H:%M:%S', 
-                                                  time.localtime(result['time'])), 
-                                    result['snr'], 
-                                    result['linkQuality'], 
-                                    result['data']])
-                    next_url = (results['paging']).get('next')
-                    time.sleep(1)
-                except requests.exceptions.RequestException as err:
-                    print err
-                except socket.error as err:
-                    print err
-        except requests.exceptions.RequestException as err:
-            print err
-        except socket.error as err:
-            print err
+            except requests.exceptions.RequestException as err:
+                print err
+            except socket.error as err:
+                print err
         return out
 
 
@@ -195,58 +162,38 @@ class sigfox:
            n_messages         -- Max number of messages
     
            Return arguments:
-           List with n messages 
+           List with the first n messages 
         """
         out = []
         num_frames = 0
+        next_url = 1
 
+        url = self.api_url + 'devices/' + str(device_id) 
         if n_messages <= 100:
-            url = self.api_url + 'devices/' + str(device_id) + '/messages?limit=' + str(n_messages) 
+            url = url + '/messages?limit=' + str(n_messages) 
         else:
-            url = self.api_url + 'devices/' + str(device_id) + '/messages?limit=100' 
-        try:
-            req = requests.get(url, 
-                               auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
-                               timeout=TIMEOUT)
-            req.raise_for_status()
-            results = req.json()
-            results = ast.literal_eval(json.dumps(results))
-            for result in results['data']:
-                out.append([result['device'], 
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(result['time'])), 
-                            result['snr'], 
-                            result['linkQuality'], 
-                            result['data']])
-                num_frames = num_frames + 1
-            next_url = (results['paging']).get('next')          
-            n_messages = n_messages - num_frames
-            while (next_url != None) and (num_frames <= n_messages):
+            url = url + '/messages?limit=100' 
+        while (next_url != None) and (num_frames < n_messages):     
+            try:
+                req = requests.get(url, 
+                                   auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
+                                   timeout=TIMEOUT)
+                req.raise_for_status()
+                results = req.json()
+                results = ast.literal_eval(json.dumps(results))
+                for result in results['data']:
+                    out.append([result['device'], 
+                                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(result['time'])), 
+                                result['snr'], 
+                                result['linkQuality'], 
+                                result['data']])
+                    num_frames = num_frames + 1
+                next_url = (results['paging']).get('next') 
                 url = next_url
-                try:
-                    req = requests.get(url, 
-                                       auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
-                                       timeout=TIMEOUT)
-                    req.raise_for_status()
-                    results = req.json()
-                    results = ast.literal_eval(json.dumps(results))
-                    for result in results['data']:
-                        out.append([result['device'], 
-                                    time.strftime('%Y-%m-%d %H:%M:%S',\
-                                    time.localtime(result['time'])), 
-                                    result['snr'], 
-                                    result['linkQuality'], 
-                                    result['data']])
-                        num_frames = num_frames + 1
-                    next_url = (results['paging']).get('next')
-                except requests.exceptions.RequestException as err:
-                    print err
-                except socket.error as err:
-                    print err
-                    time.sleep(60)
-        except requests.exceptions.RequestException as err:
-            print err
-        except socket.error as err:
-            print err
+            except requests.exceptions.RequestException as err:
+                print err
+            except socket.error as err:
+                print err
         return out
 
 
@@ -256,13 +203,16 @@ class sigfox:
            Keyword arguments:
            device_id          -- device PID
            n_messages         -- Max number of messages
-           from_time          -- Start time (epoch format)
-           upto_time          -- Finish time (epoch format)
+           from_time          -- Start time  (format: '2017-10-01')
+           upto_time          -- Finish time (format: '2017-10-01')
     
            Return arguments:
            List with n messages between from_time and upto_time
+
+
         """
         out = []
+        next_url = 1
 
         try:
             since_epoch = int(time.mktime(time.strptime(from_time, '%Y-%m-%d')))
@@ -274,43 +224,24 @@ class sigfox:
             exit()
         url = self.api_url + 'devices/' + str(device_id) + '/messages?since=' + \
               str(since_epoch) + '&before=' + str(upto_epoch)
-        try:
-            req = requests.get(url, 
-                               auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
-                               timeout=TIMEOUT)
-            req.raise_for_status()
-            results = req.json()
-            results = ast.literal_eval(json.dumps(results))
-            for result in results['data']:
-                out.append([result['device'],
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(result['time'])), 
-                            result['snr'], 
-                            result['linkQuality'], 
-                            result['data']])
-            next_url = (results['paging']).get('next')
-            while next_url:
+        while next_url != None:      
+            try:
+                req = requests.get(url, 
+                                   auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
+                                   timeout=TIMEOUT)
+                req.raise_for_status()
+                results = req.json()
+                results = ast.literal_eval(json.dumps(results))
+                for result in results['data']:
+                    out.append([result['device'],
+                                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(result['time'])), 
+                                result['snr'], 
+                                result['linkQuality'], 
+                                result['data']])
+                next_url = (results['paging']).get('next')
                 url = next_url
-                try:
-                    req = requests.get(url, 
-                                       auth=requests.auth.HTTPBasicAuth(self.login, self.password), 
-                                       timeout=TIMEOUT)
-                    req.raise_for_status()
-                    results = req.json()
-                    results = ast.literal_eval(json.dumps(results))
-                    for result in results['data']:
-                        out.append([result['device'],
-                                    time.strftime('%Y-%m-%d %H:%M:%S', \
-                                    time.localtime(result['time'])), 
-                                    result['snr'], 
-                                    result['linkQuality'], 
-                                    result['data']])        
-                    next_url = (results['paging']).get('next')
-                except requests.exceptions.RequestException as err:
-                    print err
-                except socket.error as err:
-                    print err
-        except requests.exceptions.RequestException as err:
-            print err
-        except socket.error as err:
-            print err
+            except requests.exceptions.RequestException as err:
+                print err
+            except socket.error as err:
+                print err
         return out
