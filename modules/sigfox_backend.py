@@ -4,7 +4,7 @@
 
   - Developed by Mencho: 08/02/2017
 
-  - Last Update: 13/10/2017
+  - Last Update: 09/10/2017
 ----------------------------------------
 - Classes
     -sigfox
@@ -48,15 +48,14 @@ class Sigfox(object):
         url = self.api_url + 'devicetypes'
         try:
             requests.get(url, auth=requests.auth.HTTPBasicAuth(self.login, self.password))
-            #print req.raise_for_status()
         except requests.exceptions.RequestException as err:
             print err
+            exit()
         except socket.error as err:
             print err
-        else:
-            print 'Login Error\n'
             exit()
         print 'Login Complete\n'
+        return None
 
 
     def device_types_list(self):
