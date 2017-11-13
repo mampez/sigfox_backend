@@ -1,10 +1,10 @@
-""" 
+''' 
 ----------------------------------------
   - Based on pysigfox.py by Hecko
 
   - Developed by Mencho: 08/02/2017
 
-  - Last Update: 09/10/2017
+  - Last Update: 13/10/2017
 ----------------------------------------
 - Classes
     -sigfox
@@ -15,7 +15,7 @@
     - device_n_messages
     - device_all_messages_time
 
-"""
+'''
 import socket
 import json 
 import ast
@@ -27,46 +27,47 @@ import requests.packages.urllib3
 TIMEOUT = 30
 
 class Sigfox(object):
-    """Sigfox class"""
+    '''Sigfox class'''
 
     def __init__(self, login, password):
         if not login or not password:
-            raise Exception("Login/Pass is needed it")
+            raise Exception('Login/Pass is needed it')
         self.login = login
         self.password = password
         self.api_url = 'https://backend.sigfox.com/api/'
 
     def login_test(self):
-        """Test sigfox Backend login
+        '''Test sigfox Backend login
 
             keyword arguments:
             None          
 
             Return arguments:
             text message --> 'Login Complete'
-        """
+        '''
         url = self.api_url + 'devicetypes'
         try:
-            req = requests.get(url, auth=requests.auth.HTTPBasicAuth(self.login, self.password))
-            req.raise_for_status()
-            print "Login Complete\n"
+            requests.get(url, auth=requests.auth.HTTPBasicAuth(self.login, self.password))
+            #print req.raise_for_status()
         except requests.exceptions.RequestException as err:
             print err
         except socket.error as err:
             print err
         else:
-            pass
+            print 'Login Error\n'
+            exit()
+        print 'Login Complete\n'
 
 
     def device_types_list(self):
-        """Return device type list
+        '''Return device type list
 
             Keyword arguments:
             None          
 
             Return arguments:
             List with all the device types 
-        """
+        '''
         out = []
 
         url = self.api_url + 'devicetypes'
@@ -86,14 +87,14 @@ class Sigfox(object):
 
 
     def device_list_id(self, device_type_id=0):
-        """Return device list
+        '''Return device list
 
            Keyword arguments:
            device_type_id          -- device types ID
     
            Return arguments:
            List with all the PIDs 
-        """
+        '''
         device_type_ids = []
         out = []
         next_url = 1
@@ -125,7 +126,7 @@ class Sigfox(object):
 
 
     def device_all_messages(self, device_id):
-        """Return a list with all sigfox messages
+        '''Return a list with all sigfox messages
            
            Keyword arguments:
            device_id          -- device PID
@@ -134,7 +135,7 @@ class Sigfox(object):
            List with all the messages 
 
            [pid, timestramp, snr, link_quality, data] 
-        """
+        '''
         out = []
         next_url = 1
 
@@ -167,7 +168,7 @@ class Sigfox(object):
 
 
     def device_n_messages(self, device_id, n_messages):
-        """Return a list up to N sigfox messages    
+        '''Return a list up to N sigfox messages    
 
            Keyword arguments:
            device_id          -- device PID
@@ -177,7 +178,7 @@ class Sigfox(object):
            List with the first n messages 
 
            [pid, timestramp, snr, link_quality, data] 
-        """
+        '''
         out = []
         num_frames = 0
         next_url = 1
@@ -216,7 +217,7 @@ class Sigfox(object):
 
 
     def device_all_messages_time(self, device_id, from_time, upto_time):
-        """Return a list with all messages between from_time and upto_time
+        '''Return a list with all messages between from_time and upto_time
 
            Keyword arguments:
            device_id          -- device PID
@@ -228,7 +229,7 @@ class Sigfox(object):
            List with n messages between from_time and upto_time
 
            [pid, timestramp, snr, link_quality, data] 
-        """
+        '''
         out = []
         next_url = 1
 
@@ -236,7 +237,7 @@ class Sigfox(object):
             since_epoch = int(time.mktime(time.strptime(from_time, '%Y-%m-%d')))
             upto_epoch = int(time.mktime(time.strptime(upto_time, '%Y-%m-%d')))
         except ValueError:
-            print "Error with the date conversion"
+            print 'Error with the date conversion'
         if since_epoch > upto_epoch:
             print 'upto_time should be bigger than from_time'
             exit()
